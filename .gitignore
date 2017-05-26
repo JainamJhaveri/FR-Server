@@ -1,0 +1,9 @@
+# Created by .ignore support plugin (hsz.mobi)
+
+config.js
+requests.log.json
+server_console.log.json
+node_modules/
+.idea/
+public/images/
+public/javascripts/
