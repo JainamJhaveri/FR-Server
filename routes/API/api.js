@@ -21,7 +21,7 @@ moment.tz.setDefault("Asia/Kolkata");
 
 /* Initial Entry Point of the API*/
 router.get('/', function (req, res, next) {
-    res.send("Welcome to the LiveExams API here");
+    res.send("Welcome to the Images Website API here");
 });
 
 router.post("/login", function (req, res, next) {
