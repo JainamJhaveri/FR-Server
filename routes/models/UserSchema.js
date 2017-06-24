@@ -3,9 +3,7 @@ var mongoose = require('mongoose'),
     bcrypt = require('bcryptjs'),
     SALT_WORK_FACTOR = 10;
 
-// Add exams schema to users
-// What will be the id of the user?
-
+// users ( userName, firstName, password, emailAddress, mobileNumber, registrationTimeStamp )
 
 var UserSchema = new Schema({
     userName: {
@@ -44,6 +42,10 @@ var UserSchema = new Schema({
         lowercase: true,
         trim: true,
         index: true
+    },
+    registrationTimeStamp: {
+        type: Date,
+        default: Date.now
     }
 }, {strict: true});
 

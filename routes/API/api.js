@@ -5,8 +5,6 @@ var mongoose = require('mongoose');
 var ObjectId = require('mongodb').ObjectID;
 var moment = require('moment-timezone');
 var jwt = require("jsonwebtoken");
-var alasql = require('alasql');
-var request = require('request');
 
 
 // Custom Modules
@@ -15,6 +13,8 @@ var cfg = require("../../config");
 
 // Create all the schemas here
 var UserSchema = require("../models/UserSchema").User;
+var EventSchema = require("../models/EventSchema").EventSchema;
+var EventImagesSchema = require("../models/EventImagesSchema").EventImagesSchema;
 
 // Set default timezone
 moment.tz.setDefault("Asia/Kolkata");
@@ -124,5 +124,74 @@ router.post("/signup", function (req, res, next) {
 });
 // End of signup api
 
+
+// Post request
+// request params: eventName, eventImageUrl, eventDate
+// response params: response, success
+router.post("/createEvent", function (req, res, next) {
+    var eventName = req.body.eventName;
+    var eventImageUrl = req.body.eventImageUrl;
+    var eventDate = new Date(req.body.eventDate);
+    var userId = req.body.userId;
+
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        console.log("Invalid UserId");
+        res.json({response: "Invalid UserId", success: "false"});
+        return;
+    }
+
+    UserSchema.findOne({"_id": ObjectId(userId)}, function (err, user) {
+        console.log(userId);
+        if (user === null) {
+            res.json({response: "No such user exists", success: "false"});
+            return;
+        }
+
+        var AddEvent = new EventSchema({
+            eventName: eventName,
+            eventImageUrl: eventImageUrl,
+            eventDate: eventDate,
+            userId: userId
+        });
+
+        AddEvent.save(function (err) {
+            if (err) {
+                console.log(err.errmsg);
+                var message = "";
+                if (err.errmsg.includes('eventName')) {
+                    message = "An event with this name is already created";
+                }
+                else {
+                    message = err.errmsg;
+                }
+                res.json({response: message, success: "false"});
+                return;
+            }
+            res.json({response: "Event Successfully Created!", success: "true"});
+        });
+
+
+    });
+
+
+
+});
+
+
+// GET request
+// response params: response, success
+router.get("/getAllEvents", function (req, res, next) {
+
+    EventSchema.find().exec(function (err, events) {
+        if (err) {
+            console.log(err);
+            res.json({response: err, success: "false"});
+            return;
+        }
+        res.json({response: events, success: "true"});
+    });
+
+});
 
 module.exports = router;
