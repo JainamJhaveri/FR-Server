@@ -14,7 +14,7 @@ var cfg = require("../../config");
 // Create all the schemas here
 var UserSchema = require("../models/UserSchema").User;
 var EventSchema = require("../models/EventSchema").EventSchema;
-var EventImagesSchema = require("../models/EventImagesSchema").EventImagesSchema;
+var EventFilesSchema = require("../models/EventFilesSchema").EventFilesSchema;
 
 // Set default timezone
 moment.tz.setDefault("Asia/Kolkata");
@@ -24,6 +24,10 @@ router.get('/', function (req, res, next) {
     res.send("Welcome to the Images Website API here");
 });
 
+// API type: POST
+// API URL: /api/login
+// request params: userName, password
+// response variables: response,success
 router.post("/login", function (req, res, next) {
     // All variables
     var userName = req.body.userName;
@@ -71,10 +75,10 @@ router.post("/login", function (req, res, next) {
 });
 // End of login api
 
-
-// POST signup api
-// Post variable = userName,firstName,password,mobileNumber,emailAddress
-// Response variable = response,success
+// API type: POST
+// API URL: /api/signup
+// request params: userName, firstName, password, mobileNumber, emailAddress
+// response variables: response,success
 router.post("/signup", function (req, res, next) {
     // All variables
     var userName = req.body.userName;
@@ -83,6 +87,7 @@ router.post("/signup", function (req, res, next) {
     var mobileNumber = req.body.mobileNumber;
     var emailAddress = req.body.emailAddress;
 
+    // users ( userName, firstName, password, emailAddress, mobileNumber, registrationTimeStamp )
 
     // Create a new schema for current user
     var AddUser = new UserSchema({
@@ -124,15 +129,19 @@ router.post("/signup", function (req, res, next) {
 });
 // End of signup api
 
-
-// Post request
-// request params: eventName, eventImageUrl, eventDate
-// response params: response, success
+// API type: POST
+// API URL: /api/createEvent
+// request params: eventName, eventDescription, eventImageUrl, eventDate, userId
+// response variables: response, success
 router.post("/createEvent", function (req, res, next) {
+
     var eventName = req.body.eventName;
+    var eventDescription = req.body.eventDescription;
     var eventImageUrl = req.body.eventImageUrl;
     var eventDate = new Date(req.body.eventDate);
     var userId = req.body.userId;
+
+    // events ( eventName, eventDescription, eventDate, eventImageUrl, created: {by, timeStamp}, edited: {by, timeStamp} )
 
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
@@ -150,9 +159,17 @@ router.post("/createEvent", function (req, res, next) {
 
         var AddEvent = new EventSchema({
             eventName: eventName,
-            eventImageUrl: eventImageUrl,
+            eventDescription: eventDescription,
             eventDate: eventDate,
-            userId: userId
+            eventImageUrl: eventImageUrl,
+            created: {
+                by: ObjectId(userId),
+                timeStamp: moment().format()
+            },
+            edited: {
+                by: ObjectId(userId),
+                timeStamp: moment().format()
+            }
         });
 
         AddEvent.save(function (err) {
@@ -175,11 +192,11 @@ router.post("/createEvent", function (req, res, next) {
     });
 
 
-
 });
+// End of createEvent api
 
-
-// GET request
+// API type: GET
+// API URL: /api/getAllEvents
 // response params: response, success
 router.get("/getAllEvents", function (req, res, next) {
 
@@ -191,6 +208,75 @@ router.get("/getAllEvents", function (req, res, next) {
         }
         res.json({response: events, success: "true"});
     });
+
+});
+// End of getAllEvents api
+
+
+router.post("/addFilesForEvent", function (req, res, next) {
+
+    var videos = req.body.videos;   // videos []
+    var images = req.body.images;   // images []
+    var userId = req.body.userId;
+    var eventId = req.body.eventId;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        console.log("Invalid UserId");
+        res.json({response: "Invalid UserId", success: "false"});
+        return;
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+        console.log("Invalid EventId");
+        res.json({response: "Invalid EventId", success: "false"});
+        return;
+    }
+
+
+    UserSchema.findOne({"_id": ObjectId(userId)}, function (err, user) {
+        console.log("userId: " + userId);
+
+        // if no user exists with given userId
+        if (user === null) {
+            res.json({response: "No such user exists", success: "false"});
+            return;
+        }
+
+        // if no event exists with given eventId
+        EventSchema.findOne({"_id": ObjectId(eventId)}, function (err, event) {
+            console.log("eventId: " + eventId);
+
+            if (event === null) {
+                res.json({response: "No such event exists", success: "false"});
+                return;
+            }
+
+            if (videos === undefined && images === undefined) {
+                res.json({response: "No image or video urls", success: "false"});
+                return;
+            }
+
+            var AddEventFiles = new EventFilesSchema({
+                eventId: eventId,
+                userId: userId,
+                files: {
+                    images: images,
+                    videos: videos
+                }
+            });
+
+            AddEventFiles.save(function (err) {
+                console.log(err);
+                if (err) {
+                    res.json({response: err, success: "false"});
+                    return;
+                }
+                res.json({response: "Files successfully added for the event", success: "true"});
+            });
+
+        });
+    });
+
 
 });
 

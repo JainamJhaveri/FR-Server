@@ -25,12 +25,10 @@ var EventSchema = new Schema({
     },
     created: {
         by: {
-            type: Schema.ObjectId,
-            required: [true, 'Created By UserId is not given!']
+            type: Schema.ObjectId
         },
         timeStamp: {
-            type: Date,
-            required: Date.now
+            type: Date
         }
     },
     edited: {
@@ -38,7 +36,8 @@ var EventSchema = new Schema({
             type: Schema.ObjectId
         },
         timeStamp: {
-            type: Date
+            type: Date,
+            default: Date.now
         }
     }
 

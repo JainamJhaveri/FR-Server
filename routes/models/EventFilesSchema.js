@@ -4,12 +4,12 @@
 
 
 
-// event-images ( eventId, userId, files: images: [] { imageUrl, uploadTimeStamp, caption }, videos: [] { videoUrl, uploadTimeStamp, caption } )
+// event-files ( eventId, userId, files: images: [] { imageUrl, uploadTimeStamp, caption }, videos: [] { videoUrl, uploadTimeStamp, caption } )
 
 var mongoose = require('mongoose'),
     Schema = mongoose.Schema;
 
-var EventImagesSchema = new Schema({
+var EventFilesSchema = new Schema({
     eventId: {
         type: Schema.ObjectId,
         required: [true, 'Event Name is not given']
@@ -53,8 +53,8 @@ var EventImagesSchema = new Schema({
 }, {strict: true});
 
 
-var ExportableEventImagesSchema = mongoose.model('EventImage', EventImagesSchema);
+var ExportableEventFilesSchema = mongoose.model('EventFile', EventFilesSchema);
 
 module.exports = {
-    EventImagesSchema: ExportableEventImagesSchema
+    EventFilesSchema: ExportableEventFilesSchema
 };
