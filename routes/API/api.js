@@ -37,7 +37,7 @@ router.post("/login", function (req, res, next) {
     UserSchema.getAuthenticated(userName, password, function (err, user, reason) {
         if (err) {
             console.log(err);
-            res.json({response: "Please try again!", success: "false", message: "Please Try Again!"});
+            res.json({response: "Please try again!", success: false, message: "Please Try Again!"});
             return;
         }
 
@@ -50,7 +50,7 @@ router.post("/login", function (req, res, next) {
                 id: user._id
             };
             var token = jwt.sign(payload, cfg.authJWT.jwtSecret);
-            res.json({response: user, success: "true", token: token});
+            res.json({response: user, success: true, token: token});
             return;
         }
 
@@ -60,13 +60,13 @@ router.post("/login", function (req, res, next) {
             case reasons.NOT_FOUND:
                 res.json({
                     response: "Username not found in database!",
-                    success: "false"
+                    success: false
                 });
                 break;
             case reasons.PASSWORD_INCORRECT:
                 res.json({
                     response: "Invalid Password!",
-                    success: "false"
+                    success: false
                 });
                 break;
         }
@@ -102,7 +102,7 @@ router.post("/signup", function (req, res, next) {
     var error = AddUser.validateSync();
     if (error) {
         console.log(error);
-        res.json({response: error, success: "false", message: "Please enter valid data!"});
+        res.json({response: error, success: false, message: "Please enter valid data!"});
         return;
     }
     // Save through UserScema
@@ -120,10 +120,10 @@ router.post("/signup", function (req, res, next) {
             } else {
                 message = "Please enter valid data!";
             }
-            res.json({response: message, success: "false", message: message});
+            res.json({response: message, success: false, message: message});
             return;
         }
-        res.json({response: "User Added Successfully!", success: "true"});
+        res.json({response: "User Added Successfully!", success: true});
     });
 
 });
@@ -146,14 +146,14 @@ router.post("/createEvent", function (req, res, next) {
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
         console.log("Invalid UserId");
-        res.json({response: "Invalid UserId", success: "false"});
+        res.json({response: "Invalid UserId", success: false});
         return;
     }
 
     UserSchema.findOne({"_id": ObjectId(userId)}, function (err, user) {
         console.log(userId);
         if (user === null) {
-            res.json({response: "No such user exists", success: "false"});
+            res.json({response: "No such user exists", success: false});
             return;
         }
 
@@ -182,10 +182,10 @@ router.post("/createEvent", function (req, res, next) {
                 else {
                     message = err.errmsg;
                 }
-                res.json({response: message, success: "false"});
+                res.json({response: message, success: false});
                 return;
             }
-            res.json({response: "Event Successfully Created!", success: "true"});
+            res.json({response: "Event Successfully Created!", success: true});
         });
 
 
@@ -203,16 +203,19 @@ router.get("/getAllEvents", function (req, res, next) {
     EventSchema.find().exec(function (err, events) {
         if (err) {
             console.log(err);
-            res.json({response: err, success: "false"});
+            res.json({response: err, success: false});
             return;
         }
-        res.json({response: events, success: "true"});
+        res.json({response: events, success: true});
     });
 
 });
 // End of getAllEvents api
 
-
+// API type: POST
+// API URL: /api/addFilesForEvent
+// request params: videos [], images [], userId, eventId
+// response variables: response, success
 router.post("/addFilesForEvent", function (req, res, next) {
 
     var videos = req.body.videos;   // videos []
@@ -220,15 +223,27 @@ router.post("/addFilesForEvent", function (req, res, next) {
     var userId = req.body.userId;
     var eventId = req.body.eventId;
 
+    // videos = [
+    //     {
+    //         videoUrl: "videourl1234"
+    //     }
+    // ];
+    // images = [
+    //     {
+    //         imageUrl: "imageurl1234"
+    //     }
+    // ];
+    // images = [];
+
     if (!mongoose.Types.ObjectId.isValid(userId)) {
         console.log("Invalid UserId");
-        res.json({response: "Invalid UserId", success: "false"});
+        res.json({response: "Invalid UserId", success: false});
         return;
     }
 
     if (!mongoose.Types.ObjectId.isValid(eventId)) {
         console.log("Invalid EventId");
-        res.json({response: "Invalid EventId", success: "false"});
+        res.json({response: "Invalid EventId", success: false});
         return;
     }
 
@@ -238,46 +253,148 @@ router.post("/addFilesForEvent", function (req, res, next) {
 
         // if no user exists with given userId
         if (user === null) {
-            res.json({response: "No such user exists", success: "false"});
+            res.json({response: "No such user exists", success: false});
             return;
         }
 
         // if no event exists with given eventId
-        EventSchema.findOne({"_id": ObjectId(eventId)}, function (err, event) {
+        EventSchema.findOne({"_id": eventId}, function (err, event) {
             console.log("eventId: " + eventId);
 
             if (event === null) {
-                res.json({response: "No such event exists", success: "false"});
+                res.json({response: "No such event exists", success: false});
                 return;
             }
 
             if (videos === undefined && images === undefined) {
-                res.json({response: "No image or video urls", success: "false"});
+                res.json({response: "No image or video urls", success: false});
                 return;
             }
 
-            var AddEventFiles = new EventFilesSchema({
-                eventId: eventId,
-                userId: userId,
-                files: {
-                    images: images,
-                    videos: videos
-                }
-            });
+            EventFilesSchema.findOne({eventId: eventId, userId: userId}, function (err, eventFiles) {
 
-            AddEventFiles.save(function (err) {
-                console.log(err);
-                if (err) {
-                    res.json({response: err, success: "false"});
+                var AddEventFiles = new EventFilesSchema({
+                    eventId: eventId,
+                    userId: userId,
+                    files: {
+                        images: images,
+                        videos: videos
+                    }
+                });
+
+                // if no such eventId, userId combination exists
+                //      1. add a new entry to the db
+                if (eventFiles === null) {
+
+                    AddEventFiles.save(function (err) {
+                        console.log(err);
+                        if (err) {
+                            res.json({response: err, success: false});
+                            return;
+                        }
+                        res.json({response: "Files successfully added for the event", success: true});
+                    });
                     return;
                 }
-                res.json({response: "Files successfully added for the event", success: "true"});
+
+                var pushQuery;
+                if (images.length !== 0 && videos.length !== 0) {
+                    pushQuery = {
+                        'files.images': {$each: images},
+                        'files.videos': {$each: videos}
+                    };
+                }
+                else if (images.length !== 0) {
+                    pushQuery = {
+                        'files.images': {$each: images}
+                    };
+                }
+                else {
+                    pushQuery = {
+                        'files.videos': {$each: videos}
+                    };
+                }
+
+                // else update the previous entry
+                EventFilesSchema.update({userId: userId, eventId: eventId}, {
+                    $push: pushQuery
+                }, function (err, result) {
+                    if (err) {
+                        console.log(err);
+                        res.json({response: err, success: false});
+                        return;
+                    }
+
+                    console.log(result);
+                    // result.files.images.push(images);
+                    // result.files.videos.push(videos);
+                    res.json({response: "Files successfully updated for the event", success: true});
+
+                });
+
+
             });
+
 
         });
     });
 
 
 });
+// End of addFilesForEvent api
+
+// API type: GET
+// API URL: /api/getEventDetails/:eventId
+// response params: response, success
+router.get("/getEventDetails/:eventId", function (req, res, next) {
+
+    var eventId = req.params.eventId;
+    console.log("eventId: " + eventId);
+
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+        console.log("Invalid EventId");
+        res.json({response: "Invalid EventId", success: false});
+        return;
+    }
+
+    // EventSchema.find({_id: ObjectId(eventId)}).exec(function (err, events) {
+    //     if (err) {
+    //         console.log(err);
+    //         res.json({response: err, success: false});
+    //         return;
+    //     }
+    //     res.json({response: events, success: true});
+    // });
+
+    EventFilesSchema.aggregate(
+        [
+            {
+                "$lookup": {
+                    "localField": "eventId",
+                    "from": "events",
+                    "foreignField": "_id",
+                    "as": "eventInfo"
+                }
+            },
+            {"$unwind": "$eventInfo"}
+            // ,{
+            //     "$project": {
+            //         "eventInfo._id": 0
+            //     }
+            // }
+        ]
+    ).exec(function (err, events) {
+        if (err) {
+            console.log(err);
+            res.json({response: err, success: false});
+            return;
+        }
+        res.json({response: events, success: true});
+    });
+
+});
+// End of /api/getEventDetails/:eventId
+
+
 
 module.exports = router;
